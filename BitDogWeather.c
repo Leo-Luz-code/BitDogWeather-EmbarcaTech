@@ -9,6 +9,7 @@
 #include "hardware/pwm.h"
 #include "src/ssd1306.h"
 #include "src/pin_configuration.h"
+#include "src/font.h"
 
 ssd1306_t ssd;                             // Estrutura para manipulação do display
 uint32_t current_time;                     // Armazena o tempo atual

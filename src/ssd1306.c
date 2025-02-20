@@ -1,11 +1,7 @@
 #include "ssd1306.h"
+#include "font.h"
 
 char c;
-
-static uint8_t font[] =
-    {
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Nothing
-};
 
 void ssd1306_init(ssd1306_t *ssd, uint8_t width, uint8_t height, bool external_vcc, uint8_t address, i2c_inst_t *i2c)
 {
