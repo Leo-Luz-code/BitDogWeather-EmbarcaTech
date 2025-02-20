@@ -218,6 +218,16 @@ void ssd1306_draw_char(ssd1306_t *ssd, char c, uint8_t x, uint8_t y)
     {
         index = (c - 'a' + 37) * 8;
     }
+    // Para o caractere '%'
+    else if (c == '%')
+    {
+        index = (c - '%' + 63) * 8; // Índice para '%'
+    }
+    // Para o caractere ':'
+    else if (c == ':')
+    {
+        index = (c - ':' + 64) * 8; // Índice para '%'
+    }
 
     for (uint8_t i = 0; i < 8; ++i)
     {

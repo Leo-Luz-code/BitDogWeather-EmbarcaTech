@@ -82,16 +82,20 @@ int main()
 {
     stdio_init_all();
     uint16_t vrx_value, vry_value;
-    char str_x[10], str_y[10]; // Buffers para armazenar os valores convertidos em string
+    char str_x[20], str_y[20]; // Buffers para armazenar os valores formatados
     setup();
 
     while (true)
     {
         joystick_read_axis(&vrx_value, &vry_value);
 
-        // Converte os valores do joystick para string
-        snprintf(str_x, sizeof(str_x), "X: %d", vrx_value);
-        snprintf(str_y, sizeof(str_y), "Y: %d", vry_value);
+        // Converte os valores do joystick para porcentagem
+        uint8_t umidade = (vrx_value * 100) / 4070;
+        uint16_t qualidade_ar = (vry_value * 2000) / 4070;
+
+        // Formata os valores como string
+        snprintf(str_x, sizeof(str_x), "Um: %d %%", umidade);
+        snprintf(str_y, sizeof(str_y), "Ar: %d ppm", qualidade_ar);
 
         ssd1306_fill(&ssd, !COLOR);
         ssd1306_rect(&ssd, 3, 3, 120, 56, COLOR, !COLOR, 1); // Desenha a borda
