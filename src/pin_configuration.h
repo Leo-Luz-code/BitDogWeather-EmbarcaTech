@@ -17,8 +17,9 @@ const uint16_t MIN_WRAP_DIV_BUZZER = 2;  // Valor mínimo para wrap divisor do b
 
 // LEDs RGB
 const uint LED_G = 11;
-const uint LED_B = 12;
 const uint LED_R = 13;
+const float DIVIDER_PWM = 16.0;
+const uint16_t PERIOD = 4096;
 
 // Configuração do display OLED via I2C
 #define I2C_PORT i2c1
