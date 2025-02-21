@@ -24,25 +24,15 @@ bool buzzer_state = false;
 
 void gpio_irq_handler(uint gpio, uint32_t event);
 
-// Configuração do PWM para os LEDs RGB
-void setup_pwm_led(uint led, uint *slice, uint16_t level)
+// Configuração do PWM para os LEDs RGB ou o Buzzer
+void setup_pwm(uint gpio, uint *slice, uint16_t level)
 {
-    gpio_set_function(led, GPIO_FUNC_PWM);
-    *slice = pwm_gpio_to_slice_num(led);
+    gpio_set_function(gpio, GPIO_FUNC_PWM);
+    *slice = pwm_gpio_to_slice_num(gpio);
     pwm_set_clkdiv(*slice, DIVIDER_PWM);
     pwm_set_wrap(*slice, PERIOD);
-    pwm_set_gpio_level(led, level);
+    pwm_set_gpio_level(gpio, level);
     pwm_set_enabled(*slice, true);
-}
-
-void setup_pwm_buzzer(uint buzzer_pin, uint *slice, uint16_t level)
-{
-    gpio_set_function(buzzer_pin, GPIO_FUNC_PWM); // Define o pino como saída PWM
-    *slice = pwm_gpio_to_slice_num(buzzer_pin);   // Obtém o slice PWM do pino
-    pwm_set_clkdiv(*slice, DIVIDER_PWM);          // Mantém a divisão padrão do clock
-    pwm_set_wrap(*slice, PERIOD);                 // Define o período
-    pwm_set_gpio_level(buzzer_pin, level);        // Define o duty cycle
-    pwm_set_enabled(*slice, true);                // Habilita o PWM no buzzer
 }
 
 // Configura joystick e botão
@@ -79,9 +69,9 @@ void setup()
     stdio_init_all();
     setup_joystick_and_button();
     setup_display();
-    setup_pwm_led(LED_R, &slice_led_r, LED_ON);
-    setup_pwm_led(LED_G, &slice_led_g, LED_ON);
-    setup_pwm_buzzer(BUZZER_A, &slice_buzzer, 0);
+    setup_pwm(LED_R, &slice_led_r, LED_ON);
+    setup_pwm(LED_G, &slice_led_g, LED_ON);
+    setup_pwm(BUZZER_A, &slice_buzzer, 0);
 
     gpio_set_irq_enabled_with_callback(SW, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
 }
@@ -114,7 +104,7 @@ int main()
 {
     stdio_init_all();
     uint16_t vrx_value, vry_value;
-    char str_x[20], str_y[20]; // Buffers para armazenar os valores formatados
+    char str_x[20], str_y[20], status_message[20]; // Buffers para armazenar os valores formatados
     setup();
 
     while (true)
@@ -147,12 +137,14 @@ int main()
                 pwm_set_gpio_level(LED_R, LED_OFF);
                 buzzer_interval = 0;             // Buzzer desligado
                 pwm_set_gpio_level(BUZZER_A, 0); // Desliga o buzzer
+                snprintf(status_message, sizeof(status_message), "ESTAVEL");
             }
             else if (umidade >= 90 || umidade <= 10 || qualidade_ar >= 1800 || qualidade_ar <= 200) // Zona de perigo
             {
                 pwm_set_gpio_level(LED_G, LED_OFF);
                 pwm_set_gpio_level(LED_R, LED_ON);
                 buzzer_interval = 250000; // 0.25 segundos (4 vezes por segundo)
+                snprintf(status_message, sizeof(status_message), "PERIGO");
             }
             else if (((umidade > 60 && umidade < 90) || (umidade < 40 && umidade > 10)) ||
                      ((qualidade_ar > 1200 && qualidade_ar < 1800) || (qualidade_ar < 800 && qualidade_ar > 200))) // Zona de alerta
@@ -160,6 +152,7 @@ int main()
                 pwm_set_gpio_level(LED_G, LED_ON);
                 pwm_set_gpio_level(LED_R, LED_ON);
                 buzzer_interval = 500000; // 0.5 segundos (2 vezes por segundo)
+                snprintf(status_message, sizeof(status_message), "ALERTA");
             }
         }
 
@@ -175,8 +168,12 @@ int main()
         }
 
         // Desenha os valores no centro do display
-        ssd1306_draw_string(&ssd, str_x, center_x_x, center_y);
-        ssd1306_draw_string(&ssd, str_y, center_x_y, center_y + 10);
+        ssd1306_draw_string(&ssd, str_x, center_x_x, center_y - 8);
+        ssd1306_draw_string(&ssd, str_y, center_x_y, center_y + 2);
+
+        // Desenha o status abaixo das leituras
+        uint8_t center_status = (WIDTH - (strlen(status_message) * 8)) / 2;
+        ssd1306_draw_string(&ssd, status_message, center_status, center_y + 14);
 
         ssd1306_send_data(&ssd); // Envia os dados para o leitor
 
