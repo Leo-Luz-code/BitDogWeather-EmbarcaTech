@@ -7,7 +7,6 @@ const uint VRY = 26;
 const uint ADC_CHANNEL_0 = 0;
 const uint ADC_CHANNEL_1 = 1;
 const uint SW = 22;
-const uint BUTTON_A = 5;
 const uint BUZZER_A = 21;
 
 // Constantes para configurações PWM e LED

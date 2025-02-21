@@ -11,13 +11,16 @@
 #include "src/pin_configuration.h"
 #include "src/font.h"
 
-ssd1306_t ssd;                             // Estrutura para manipulação do display
-uint32_t current_time;                     // Armazena o tempo atual
-static volatile uint32_t last_time_SW = 0; // Variável para debounce
-volatile bool STATE_LEDS = true;           // Varíavel de estado dos LEDs
-uint slice_led_r, slice_led_g;             // Slices PWM dos LEDs
-uint LED_ON = 100;
+ssd1306_t ssd;                               // Estrutura para manipulação do display
+uint32_t current_time;                       // Armazena o tempo atual
+static volatile uint32_t last_time_SW = 0;   // Variável para debounce
+volatile bool STATE_LEDS = true;             // Varíavel de estado dos LEDs
+uint slice_led_r, slice_led_g, slice_buzzer; // Slices PWM dos LEDs e Buzzer
+uint LED_ON = 500;
 uint LED_OFF = 0;
+uint32_t last_buzzer_time = 0;
+uint32_t buzzer_interval = 0; // Intervalo do buzzer (1s ou 0.5s)
+bool buzzer_state = false;
 
 void gpio_irq_handler(uint gpio, uint32_t event);
 
@@ -30,6 +33,16 @@ void setup_pwm_led(uint led, uint *slice, uint16_t level)
     pwm_set_wrap(*slice, PERIOD);
     pwm_set_gpio_level(led, level);
     pwm_set_enabled(*slice, true);
+}
+
+void setup_pwm_buzzer(uint buzzer_pin, uint *slice, uint16_t level)
+{
+    gpio_set_function(buzzer_pin, GPIO_FUNC_PWM); // Define o pino como saída PWM
+    *slice = pwm_gpio_to_slice_num(buzzer_pin);   // Obtém o slice PWM do pino
+    pwm_set_clkdiv(*slice, DIVIDER_PWM);          // Mantém a divisão padrão do clock
+    pwm_set_wrap(*slice, PERIOD);                 // Define o período
+    pwm_set_gpio_level(buzzer_pin, level);        // Define o duty cycle
+    pwm_set_enabled(*slice, true);                // Habilita o PWM no buzzer
 }
 
 // Configura joystick e botão
@@ -68,6 +81,7 @@ void setup()
     setup_display();
     setup_pwm_led(LED_R, &slice_led_r, LED_ON);
     setup_pwm_led(LED_G, &slice_led_g, LED_ON);
+    setup_pwm_buzzer(BUZZER_A, &slice_buzzer, 0);
 
     gpio_set_irq_enabled_with_callback(SW, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
 }
@@ -123,24 +137,41 @@ int main()
         uint8_t center_x_y = (WIDTH - (strlen(str_y) * 8)) / 2;
         uint8_t center_y = HEIGHT / 2 - 8; // Posição vertical ajustada
 
+        uint64_t this_current_time = time_us_64();
+
         if (STATE_LEDS)
         {
             if ((umidade >= 40 && umidade <= 60) && (qualidade_ar >= 800 && qualidade_ar <= 1200)) // Dentro da zona segura
             {
                 pwm_set_gpio_level(LED_G, LED_ON);
                 pwm_set_gpio_level(LED_R, LED_OFF);
+                buzzer_interval = 0;             // Buzzer desligado
+                pwm_set_gpio_level(BUZZER_A, 0); // Desliga o buzzer
+            }
+            else if (umidade >= 90 || umidade <= 10 || qualidade_ar >= 1800 || qualidade_ar <= 200) // Zona de perigo
+            {
+                pwm_set_gpio_level(LED_G, LED_OFF);
+                pwm_set_gpio_level(LED_R, LED_ON);
+                buzzer_interval = 250000; // 0.25 segundos (4 vezes por segundo)
             }
             else if (((umidade > 60 && umidade < 90) || (umidade < 40 && umidade > 10)) ||
                      ((qualidade_ar > 1200 && qualidade_ar < 1800) || (qualidade_ar < 800 && qualidade_ar > 200))) // Zona de alerta
             {
                 pwm_set_gpio_level(LED_G, LED_ON);
                 pwm_set_gpio_level(LED_R, LED_ON);
+                buzzer_interval = 500000; // 0.5 segundos (2 vezes por segundo)
             }
-            else if (umidade >= 90 || umidade <= 10 || qualidade_ar >= 1800 || qualidade_ar <= 200) // Zona de perigo
-            {
-                pwm_set_gpio_level(LED_G, LED_OFF);
-                pwm_set_gpio_level(LED_R, LED_ON);
-            }
+        }
+
+        if (buzzer_interval > 0 && (this_current_time - last_buzzer_time >= buzzer_interval))
+        {
+            last_buzzer_time = this_current_time;
+            buzzer_state = !buzzer_state; // Alterna o estado do buzzer
+
+            if (buzzer_state)
+                pwm_set_gpio_level(BUZZER_A, 300); // Ativa o buzzer
+            else
+                pwm_set_gpio_level(BUZZER_A, 0); // Desliga o buzzer
         }
 
         // Desenha os valores no centro do display
