@@ -128,32 +128,41 @@ int main()
 
         uint64_t this_current_time = time_us_64();
 
-        // Se os LEDs estiverem ativados
-        if (STATE_LEDS)
-
+        // Define a mensagem de status antes de verificar STATE_LEDS
+        if ((umidade >= 40 && umidade <= 60) && (qualidade_ar >= 800 && qualidade_ar <= 1200)) // Dentro da zona segura
         {
-            if ((umidade >= 40 && umidade <= 60) && (qualidade_ar >= 800 && qualidade_ar <= 1200)) // Dentro da zona segura
+            snprintf(status_message, sizeof(status_message), "ESTAVEL");
+            buzzer_interval = 0;             // Buzzer desligado
+            pwm_set_gpio_level(BUZZER_A, 0); // Desliga o buzzer
+        }
+        else if (umidade >= 90 || umidade <= 10 || qualidade_ar >= 1800 || qualidade_ar <= 200) // Zona de perigo
+        {
+            snprintf(status_message, sizeof(status_message), "PERIGO");
+            buzzer_interval = 250000; // 0.25 segundos (4 vezes por segundo)
+        }
+        else // Zona de alerta
+        {
+            snprintf(status_message, sizeof(status_message), "ALERTA");
+            buzzer_interval = 500000; // 0.5 segundos (2 vezes por segundo)
+        }
+
+        // Controla ontrola LEDs apenas se STATE_LEDS estiver ativado
+        if (STATE_LEDS)
+        {
+            if (strcmp(status_message, "ESTAVEL") == 0)
             {
                 pwm_set_gpio_level(LED_G, LED_ON);
                 pwm_set_gpio_level(LED_R, LED_OFF);
-                buzzer_interval = 0;             // Buzzer desligado
-                pwm_set_gpio_level(BUZZER_A, 0); // Desliga o buzzer
-                snprintf(status_message, sizeof(status_message), "ESTAVEL");
             }
-            else if (umidade >= 90 || umidade <= 10 || qualidade_ar >= 1800 || qualidade_ar <= 200) // Zona de perigo
+            else if (strcmp(status_message, "PERIGO") == 0)
             {
                 pwm_set_gpio_level(LED_G, LED_OFF);
                 pwm_set_gpio_level(LED_R, LED_ON);
-                buzzer_interval = 250000; // 0.25 segundos (4 vezes por segundo)
-                snprintf(status_message, sizeof(status_message), "PERIGO");
             }
-            else if (((umidade > 60 && umidade < 90) || (umidade < 40 && umidade > 10)) ||
-                     ((qualidade_ar > 1200 && qualidade_ar < 1800) || (qualidade_ar < 800 && qualidade_ar > 200))) // Zona de alerta
+            else if (strcmp(status_message, "ALERTA") == 0)
             {
                 pwm_set_gpio_level(LED_G, LED_ON);
                 pwm_set_gpio_level(LED_R, LED_ON);
-                buzzer_interval = 500000; // 0.5 segundos (2 vezes por segundo)
-                snprintf(status_message, sizeof(status_message), "ALERTA");
             }
         }
 
