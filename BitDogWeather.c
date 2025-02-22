@@ -138,12 +138,12 @@ int main()
         else if (umidade >= 90 || umidade <= 10 || qualidade_ar >= 1800 || qualidade_ar <= 200) // Zona de perigo
         {
             snprintf(status_message, sizeof(status_message), "PERIGO");
-            buzzer_interval = 250000; // 0.25 segundos (4 vezes por segundo)
+            buzzer_interval = 250000; // 0.25 segundos (2 vezes por segundo)
         }
         else // Zona de alerta
         {
             snprintf(status_message, sizeof(status_message), "ALERTA");
-            buzzer_interval = 500000; // 0.5 segundos (2 vezes por segundo)
+            buzzer_interval = 500000; // 0.5 segundos (1 vezes por segundo)
         }
 
         // Controla ontrola LEDs apenas se STATE_LEDS estiver ativado

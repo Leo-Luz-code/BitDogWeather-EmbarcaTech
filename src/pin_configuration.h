@@ -2,8 +2,8 @@
 #define PIN_CONFIGURATION_H
 
 // Definição dos pinos
-const uint VRX = 27;
-const uint VRY = 26;
+const uint VRX = 26;
+const uint VRY = 27;
 const uint ADC_CHANNEL_0 = 0;
 const uint ADC_CHANNEL_1 = 1;
 const uint SW = 22;
