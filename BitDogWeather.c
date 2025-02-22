@@ -16,13 +16,13 @@ uint32_t current_time;                       // Armazena o tempo atual
 static volatile uint32_t last_time_SW = 0;   // Variável para debounce
 volatile bool STATE_LEDS = true;             // Varíavel de estado dos LEDs
 uint slice_led_r, slice_led_g, slice_buzzer; // Slices PWM dos LEDs e Buzzer
-uint LED_ON = 500;
-uint LED_OFF = 0;
-uint32_t last_buzzer_time = 0;
-uint32_t buzzer_interval = 0; // Intervalo do buzzer (1s ou 0.5s)
+uint LED_ON = 500;                           // Potência entregue para ligar os LEDs
+uint LED_OFF = 0;                            // Potência zerada para desligar
+uint32_t last_buzzer_time = 0;               // Último momento que o buzzer bipou
+uint32_t buzzer_interval = 0;                // Intervalo do buzzer (1s ou 0.5s)
 bool buzzer_state = false;
 
-void gpio_irq_handler(uint gpio, uint32_t event);
+void gpio_irq_handler(uint gpio, uint32_t event); // Prototipação da função de interrupção
 
 // Configuração do PWM para os LEDs RGB ou o Buzzer
 void setup_pwm(uint gpio, uint *slice, uint16_t level)
@@ -102,8 +102,7 @@ void joystick_read_axis(uint16_t *vrx_value, uint16_t *vry_value)
 
 int main()
 {
-    stdio_init_all();
-    uint16_t vrx_value, vry_value;
+    uint16_t vrx_value, vry_value;                 // Variáveis para armazenar os valores do joysticks
     char str_x[20], str_y[20], status_message[20]; // Buffers para armazenar os valores formatados
     setup();
 
@@ -129,7 +128,9 @@ int main()
 
         uint64_t this_current_time = time_us_64();
 
+        // Se os LEDs estiverem ativados
         if (STATE_LEDS)
+
         {
             if ((umidade >= 40 && umidade <= 60) && (qualidade_ar >= 800 && qualidade_ar <= 1200)) // Dentro da zona segura
             {
@@ -156,6 +157,7 @@ int main()
             }
         }
 
+        // Condição para o buzzer bipar
         if (buzzer_interval > 0 && (this_current_time - last_buzzer_time >= buzzer_interval))
         {
             last_buzzer_time = this_current_time;
@@ -188,7 +190,7 @@ void gpio_irq_handler(uint gpio, uint32_t event)
 
     if (gpio == SW) // Se a interrupção veio do botão SW
     {
-        if (current_time - last_time_SW > 200000) // 500 ms de debouncing
+        if (current_time - last_time_SW > 200000) // 200 ms de debouncing
         {
             last_time_SW = current_time;
             alter_leds();
